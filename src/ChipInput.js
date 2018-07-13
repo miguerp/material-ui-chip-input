@@ -511,6 +511,7 @@ class ChipInput extends React.Component {
             placeholder={!hasInput && (shrinkFloatingLabel || label == null) ? placeholder : null}
             {...other}
           />
+          {this.props.children}
         </div>
         {helperText && (
           <FormHelperText className={cx(helperTextClassName, classes.helperText)} {...FormHelperTextProps}>
