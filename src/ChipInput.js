@@ -176,6 +176,12 @@ class ChipInput extends React.Component {
     if (nextProps.disabled) {
       this.setState({ focusedChip: null })
     }
+
+    // Lets assume that if the chips have changed, the inputValue should be empty
+    // otherwise, we would need to make inputValue a controlled value. which is quite messy
+    if (nextProps.value && this.props.clearInputValueOnAdd && nextProps.value.length !== this.props.value.length) {
+      this.setState({ inputValue: '' })
+    }
   }
 
   /**
@@ -250,9 +256,19 @@ class ChipInput extends React.Component {
   handleKeyDown = (event) => {
     const { focusedChip } = this.state
     this.setState({ keyPressed: false, preventChipCreation: false })
+    if (this.props.onKeyDown) {
+      // Needed for arrow controls on menu in autocomplete scenario
+      this.props.onKeyDown(event)
+      // Check if the callback marked the event as isDefaultPrevented() and skip further actions
+      // enter key for example should not always add the current value of the inputField
+      if (event.isDefaultPrevented()) {
+        return
+      }
+    }
 
     if (this.props.newChipKeyCodes.indexOf(event.keyCode) >= 0) {
-      this.handleAddChip(event.target.value)
+      let result = this.handleAddChip(event.target.value)
+      if (result !== false) event.preventDefault()
     } else if (event.keyCode === 8 || event.keyCode === 46) {
       if (event.target.value === '') {
         const chips = this.props.value || this.state.chips
@@ -295,10 +311,12 @@ class ChipInput extends React.Component {
     } else {
       this.setState({ inputValue: event.target.value })
     }
+    if (this.props.onKeyUp) { this.props.onKeyUp(event) }
   }
 
   handleKeyPress = (event) => {
     this.setState({ keyPressed: true })
+    if (this.props.onKeyPress) { this.props.onKeyPress(event) }
   }
 
   handleUpdateInput = (e) => {
@@ -306,7 +324,7 @@ class ChipInput extends React.Component {
 
     if (this.props.onUpdateInput) {
       // this.props.onUpdateInput(searchText, dataSource, params)
-      this.props.onUpdateInput(e.target.value)
+      this.props.onUpdateInput(e)
     }
   }
 
@@ -346,6 +364,8 @@ class ChipInput extends React.Component {
           }
         }
       }
+    } else {
+      return false
     }
   }
 
@@ -402,6 +422,7 @@ class ChipInput extends React.Component {
       chipRenderer = defaultChipRenderer,
       classes,
       className,
+      clearInputValueOnAdd,
       defaultValue = [], // eslint-disable-line no-unused-vars
       dataSource,
       dataSourceConfig,
@@ -422,12 +443,15 @@ class ChipInput extends React.Component {
       newChipKeyCodes, // eslint-disable-line no-unused-vars
       onBeforeAdd,
       onAdd, // eslint-disable-line no-unused-vars
-      onDelete, // eslint-disable-line no-unused-vars
       onBlur, // eslint-disable-line no-unused-vars
+      onDelete, // eslint-disable-line no-unused-vars
       onChange, // eslint-disable-line no-unused-vars
       onFocus, // eslint-disable-line no-unused-vars
-      onUpdateInput, // eslint-disable-line
       // openOnFocus, // eslint-disable-line
+      onKeyDown,
+      onKeyPress,
+      onKeyUp,
+      onUpdateInput,
       placeholder,
       required,
       rootRef,
@@ -546,6 +570,7 @@ ChipInput.propTypes = {
   fullWidth: PropTypes.bool,
   fullWidthInput: PropTypes.bool,
   inputRef: PropTypes.func,
+  clearInputValueOnAdd: PropTypes.bool,
   blurBehavior: PropTypes.oneOf(['clear', 'add', 'ignore'])
 }
 
@@ -553,7 +578,8 @@ ChipInput.defaultProps = {
   newChipKeyCodes: [13],
   blurBehavior: 'clear',
   allowDuplicates: false,
-  inputRef: () => {}
+  inputRef: () => {},
+  clearInputValueOnAdd: false
 }
 
 export default withStyles(styles)(ChipInput)
